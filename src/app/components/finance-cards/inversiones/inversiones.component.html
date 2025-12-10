@@ -1,0 +1,120 @@
+<div class="space-y-6">
+
+  <!-- FORM -->
+  <div class="p-4 bg-white rounded-xl shadow">
+    <h2 class="text-lg font-semibold mb-3">
+      {{ editingId ? 'Editar inversión' : 'Agregar inversión' }}
+    </h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+      <!-- Plataforma -->
+      <input
+        *ngIf="!editingId"
+        type="text"
+        class="p-2 border rounded"
+        placeholder="Plataforma (ej: Binance)"
+        [(ngModel)]="platform"
+      />
+
+      <!-- Activo -->
+      <input
+        *ngIf="!editingId"
+        type="text"
+        class="p-2 border rounded"
+        placeholder="Activo (ej: BTC)"
+        [(ngModel)]="asset"
+      />
+
+      <!-- Monto invertido (CREAR) -->
+      <input
+        *ngIf="!editingId"
+        type="number"
+        class="p-2 border rounded"
+        placeholder="Monto invertido"
+        [(ngModel)]="investedAmount"
+      />
+
+      <!-- Monto invertido (EDITAR) -->
+      <input
+        *ngIf="editingId"
+        type="number"
+        class="p-2 border rounded"
+        placeholder="Monto invertido"
+        [(ngModel)]="editInvestedAmount"
+      />
+
+      <!-- Valor actual (EDITAR) -->
+      <input
+        *ngIf="editingId"
+        type="number"
+        class="p-2 border rounded"
+        placeholder="Valor actual"
+        [(ngModel)]="editCurrentValue"
+      />
+
+    </div>
+
+    <div class="flex gap-2 mt-4">
+      <button
+        *ngIf="!editingId"
+        (click)="addInvestment()"
+        class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+      >
+        Agregar
+      </button>
+
+      <button
+        *ngIf="editingId"
+        (click)="saveEdit()"
+        class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+      >
+        Guardar cambios
+      </button>
+
+      <button
+        *ngIf="editingId"
+        (click)="cancelEdit()"
+        class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
+      >
+        Cancelar
+      </button>
+    </div>
+  </div>
+
+
+  <!-- LISTA DE INVERSIONES -->
+  <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+
+    <div
+      *ngFor="let inv of (investments$ | async)"
+      class="p-4 bg-white rounded-xl shadow flex flex-col justify-between"
+    >
+      <div>
+        <p class="font-semibold text-indigo-700">{{ inv.platform }}</p>
+        <p class="text-sm text-gray-600">{{ inv.asset }}</p>
+
+        <p class="mt-2 text-xl font-bold">
+          Invertido: ${{ inv.investedAmount | number : '1.0-2' }}
+        </p>
+
+        <p class="text-md text-green-600">
+          Valor actual: ${{ inv.currentValue | number : '1.0-2' }}
+        </p>
+
+        <p class="text-xs text-gray-500 mt-1">
+          {{ inv.createdAt?.toDate?.() || inv.createdAt | date:'short' }}
+        </p>
+      </div>
+
+      <button
+        (click)="startEdit(inv)"
+        class="mt-4 px-3 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600"
+      >
+        Editar
+      </button>
+    </div>
+
+  </div>
+
+</div>

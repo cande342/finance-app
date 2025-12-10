@@ -1,0 +1,180 @@
+  <!-- Card 2: Compras en Cuotas (MEJORADO) -->
+  <div class="card-container border-t-4 border-orange-500">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-bold text-gray-800">Compras en Cuotas</h2>
+      <span class="text-2xl">💳</span>
+    </div>
+    
+    <!-- Lista de Cuotas -->
+    <div class="scrollable-list mb-4 space-y-3">
+      <div *ngFor="let i of installments$ | async" 
+           class="p-4 bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl border border-orange-200 hover:shadow-md transition-all">
+        
+        <!-- Header con nombre y progreso -->
+        <div class="flex justify-between items-start mb-3">
+          <div class="flex-1">
+            <h3 class="font-bold text-gray-900 text-base">{{i.item}}</h3>
+            <p class="text-xs text-gray-600 mt-1">
+              Total: <span class="font-semibold text-gray-800">{{i.totalAmount | currency}}</span>
+            </p>
+          </div>
+          <span class="px-3 py-1 bg-orange-600 text-white rounded-full text-xs font-bold">
+            {{i.paidCuotas}}/{{i.totalCuotas}}
+          </span>
+        </div>
+
+        <!-- Barra de progreso -->
+        <div class="w-full bg-gray-300 rounded-full h-2.5 mb-3">
+          <div class="bg-gradient-to-r from-orange-500 to-orange-600 h-2.5 rounded-full transition-all shadow-sm" 
+               [style.width.%]="(i.paidCuotas / i.totalCuotas) * 100"></div>
+        </div>
+
+        <!-- Información detallada -->
+        <div class="grid grid-cols-2 gap-2 mb-3 text-xs">
+          <div class="bg-white/60 p-2 rounded">
+            <p class="text-gray-600">Por cuota</p>
+            <p class="font-bold text-gray-900">{{i.amountPerCuota | currency}}</p>
+          </div>
+          <div class="bg-white/60 p-2 rounded">
+            <p class="text-gray-600">Restante</p>
+            <p class="font-bold text-orange-700">{{getRemainingAmount(i) | currency}}</p>
+          </div>
+        </div>
+
+        <!-- Acciones -->
+        <div class="flex gap-2">
+          <button 
+            (click)="payOne(i)" 
+            *ngIf="i.paidCuotas < i.totalCuotas" 
+            class="flex-1 bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg transition-all font-medium text-sm shadow-sm">
+            ✓ Pagar Cuota
+          </button>
+          <button 
+            *ngIf="i.paidCuotas === i.totalCuotas"
+            class="flex-1 bg-gray-300 text-gray-600 px-3 py-2 rounded-lg font-medium text-sm cursor-not-allowed">
+            ✓ Completado
+          </button>
+          <button 
+            (click)="deleteInstallment(i.id!)"
+            class="bg-red-100 hover:bg-red-200 text-red-600 px-3 py-2 rounded-lg transition-all text-sm">
+            🗑️
+          </button>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div *ngIf="(installments$ | async)?.length === 0" class="text-center py-8 text-gray-400">
+        <p class="text-3xl mb-2">📦</p>
+        <p class="text-sm font-medium">No hay compras en cuotas</p>
+        <p class="text-xs mt-1">Agrega tu primera compra financiada</p>
+      </div>
+    </div>
+
+    <!-- Botón toggle formulario -->
+    <button 
+      (click)="showInstallmentForm = !showInstallmentForm"
+      class="w-full text-sm text-orange-600 hover:text-orange-700 font-semibold py-2.5 border-2 border-orange-200 rounded-lg hover:bg-orange-50 transition-all">
+      {{ showInstallmentForm ? '✕ Cancelar' : '+ Nueva Compra en Cuotas' }}
+    </button>
+
+    <!-- Formulario mejorado -->
+    <div *ngIf="showInstallmentForm" class="mt-4 space-y-3 p-4 bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl border-2 border-orange-200 animate-slideDown">
+      <h3 class="font-bold text-gray-800 text-sm mb-2">📝 Detalles de la Compra</h3>
+      
+      <!-- Nombre del producto -->
+      <div>
+        <label class="block text-xs font-semibold text-gray-700 mb-1">Producto / Servicio</label>
+        <input 
+          [(ngModel)]="instItem" 
+          placeholder="Ej: Notebook Lenovo" 
+          class="w-full border border-orange-200 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-orange-400 bg-white">
+      </div>
+
+      <!-- Opción de entrada: Total o Por Cuota -->
+      <div>
+        <label class="block text-xs font-semibold text-gray-700 mb-2">Método de Cálculo</label>
+        <div class="flex gap-2 mb-3">
+          <button 
+            type="button"
+            (click)="instInputMode = 'total'"
+            [class.bg-orange-600]="instInputMode === 'total'"
+            [class.text-white]="instInputMode === 'total'"
+            [class.bg-white]="instInputMode !== 'total'"
+            [class.text-gray-700]="instInputMode !== 'total'"
+            class="flex-1 py-2 px-3 rounded-lg border border-orange-300 text-xs font-semibold transition-all">
+            💰 Total
+          </button>
+          <button 
+            type="button"
+            (click)="instInputMode = 'cuota'"
+            [class.bg-orange-600]="instInputMode === 'cuota'"
+            [class.text-white]="instInputMode === 'cuota'"
+            [class.bg-white]="instInputMode !== 'cuota'"
+            [class.text-gray-700]="instInputMode !== 'cuota'"
+            class="flex-1 py-2 px-3 rounded-lg border border-orange-300 text-xs font-semibold transition-all">
+            📊 Por Cuota
+          </button>
+        </div>
+      </div>
+
+      <!-- Modo: Ingresar total + cuotas (calcula cuota) -->
+      <div *ngIf="instInputMode === 'total'" class="space-y-2">
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Monto Total</label>
+          <input 
+            [(ngModel)]="instTotalAmount" 
+            (ngModelChange)="calculateAmountPerCuota()"
+            type="number" 
+            placeholder="Ej: 120000" 
+            class="w-full border border-orange-200 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-orange-400 bg-white">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Cantidad de Cuotas</label>
+          <input 
+            [(ngModel)]="instTotal" 
+            (ngModelChange)="calculateAmountPerCuota()"
+            type="number" 
+            placeholder="Ej: 12" 
+            class="w-full border border-orange-200 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-orange-400 bg-white">
+        </div>
+        <div class="bg-white p-3 rounded-lg border border-orange-300">
+          <p class="text-xs text-gray-600">Valor por cuota calculado:</p>
+          <p class="text-lg font-bold text-orange-700">{{ getCalculatedCuota() | currency }}</p>
+        </div>
+      </div>
+
+      <!-- Modo: Ingresar cuota + cantidad (calcula total) -->
+      <div *ngIf="instInputMode === 'cuota'" class="space-y-2">
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Valor de Cada Cuota</label>
+          <input 
+            [(ngModel)]="instAmount" 
+            (ngModelChange)="calculateTotalAmount()"
+            type="number" 
+            placeholder="Ej: 10000" 
+            class="w-full border border-orange-200 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-orange-400 bg-white">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Cantidad de Cuotas</label>
+          <input 
+            [(ngModel)]="instTotal" 
+            (ngModelChange)="calculateTotalAmount()"
+            type="number" 
+            placeholder="Ej: 12" 
+            class="w-full border border-orange-200 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-orange-400 bg-white">
+        </div>
+        <div class="bg-white p-3 rounded-lg border border-orange-300">
+          <p class="text-xs text-gray-600">Monto total calculado:</p>
+          <p class="text-lg font-bold text-orange-700">{{ getCalculatedTotal() | currency }}</p>
+        </div>
+      </div>
+
+      <!-- Botón guardar -->
+      <button 
+        (click)="addInstallment()" 
+        [disabled]="!canSaveInstallment()"
+        class="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3 rounded-lg transition-all font-bold shadow-md">
+        💾 Guardar Compra
+      </button>
+    </div>
+  </div>

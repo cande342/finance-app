@@ -1,0 +1,60 @@
+  
+  <!-- Card 1: Nuevo Movimiento -->
+  <div class="card-container border-t-4 border-blue-500">
+    <h2 class="text-xl font-bold mb-4 text-gray-800">Nuevo Movimiento</h2>
+    
+    <div class="flex gap-2 mb-4">
+      <button 
+        (click)="newType='ingreso'" 
+        [class.bg-green-100]="newType=='ingreso'" 
+        [class.ring-2]="newType=='ingreso'"
+        [class.ring-green-400]="newType=='ingreso'"
+        class="flex-1 p-3 border border-gray-200 rounded-lg text-center hover:bg-gray-50 transition-all font-medium">
+        💰 Ingreso
+      </button>
+      <button 
+        (click)="newType='gasto'" 
+        [class.bg-red-100]="newType=='gasto'"
+        [class.ring-2]="newType=='gasto'"
+        [class.ring-red-400]="newType=='gasto'"
+        class="flex-1 p-3 border border-gray-200 rounded-lg text-center hover:bg-gray-50 transition-all font-medium">
+        💸 Gasto
+      </button>
+    </div>
+
+    <div class="space-y-3">
+      <input 
+        [(ngModel)]="amount" 
+        type="number" 
+        placeholder="Monto" 
+        class="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none">
+      
+      <input 
+        [(ngModel)]="desc" 
+        type="text" 
+        placeholder="Descripción" 
+        class="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none">
+      
+      <select 
+        [(ngModel)]="category" 
+        class="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none">
+        <option NgIf="newType=='ingreso'" value="sueldo">Sueldo</option>
+        <option NgIf="newType=='ingreso'" value="extra">Extra</option>
+        <option NgIf="newType=='gasto'" value="tarjeta">Tarjeta de Crédito</option>
+        <option NgIf="newType=='gasto'" value="ocio">Ocio / Salidas</option>
+        <option NgIf="newType=='gasto'" value="servicios">Servicios</option>
+        <option NgIf="newType=='gasto'" value="ahorros">Ahorro</option>
+      </select>
+
+      <button 
+        (click)="addTransaction()" 
+        class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-all hover:shadow-md">
+        Registrar
+      </button>
+    </div>
+    
+    <div NgIf="totalExpense > 100000" class="mt-4 p-4 bg-red-50 text-red-700 rounded-lg text-sm border border-red-200">
+      <span class="text-lg">⚠️</span>
+      <strong>¡Cuidado!</strong> Tus gastos superan los $100k este mes. Considera reducir gastos en "Ocio".
+    </div>
+  </div>
