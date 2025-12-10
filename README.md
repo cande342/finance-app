@@ -36,9 +36,9 @@ Sigue estos pasos para levantar el proyecto en tu máquina local:
 ```bash
 git clone [https://github.com/TU_USUARIO/TU_REPO.git](https://github.com/cande342/finance-app.git)
 cd finance-app
-npm install
+npm install```
 
-## 2. ⚠️ Configuración de Firebase (IMPORTANTE)
+### 2. ⚠️ Configuración de Firebase (IMPORTANTE)
 
 Este proyecto utiliza Firebase como Backend (Auth y Base de datos). El archivo de entorno (`environment.ts`) que viene en el repositorio es solo un ejemplo o placeholder. Debes conectar tu propia base de datos.
 
@@ -50,12 +50,12 @@ Este proyecto utiliza Firebase como Backend (Auth y Base de datos). El archivo d
 4. Crear el archivo de entorno real:  
    Ve a la carpeta `src/environments/` y edita el archivo `environment.ts` pegando tus credenciales reales.
 
-## 3. Ejecutar el proyecto localmente
+### 3. Ejecutar el proyecto localmente
 
 ```bash
-ng serve
+ng serve```
 
-## 🤖 Configuración de Gemini AI (Inteligencia Artificial)
+### 🤖 Configuración de Gemini AI (Inteligencia Artificial)
 
 La clave de la IA no requiere configuración en el código fuente.
 
