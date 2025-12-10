@@ -36,7 +36,8 @@ Sigue estos pasos para levantar el proyecto en tu máquina local:
 ```bash
 git clone [https://github.com/TU_USUARIO/TU_REPO.git](https://github.com/cande342/finance-app.git)
 cd finance-app
-npm install```
+npm install
+```
 
 ### 2. ⚠️ Configuración de Firebase (IMPORTANTE)
 
@@ -53,7 +54,8 @@ Este proyecto utiliza Firebase como Backend (Auth y Base de datos). El archivo d
 ### 3. Ejecutar el proyecto localmente
 
 ```bash
-ng serve```
+ng serve
+```
 
 ### 🤖 Configuración de Gemini AI (Inteligencia Artificial)
 
