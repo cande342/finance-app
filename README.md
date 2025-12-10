@@ -33,11 +33,11 @@ Antes de comenzar, asegúrate de tener instalado:
 Sigue estos pasos para levantar el proyecto en tu máquina local:
 
 ### 1. Clonar el Repositorio
-```bash
+
 git clone [https://github.com/cande342/finance-app.git](https://github.com/cande342/finance-app.git)
 cd finance-app
 npm install
-```
+
 
 ### 2. ⚠️ Configuración de Firebase (IMPORTANTE)
 
