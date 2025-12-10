@@ -34,7 +34,7 @@ Sigue estos pasos para levantar el proyecto en tu máquina local:
 
 ### 1. Clonar el Repositorio
 ```bash
-git clone [https://github.com/TU_USUARIO/TU_REPO.git](https://github.com/cande342/finance-app.git)
+git clone [https://github.com/cande342/finance-app.git](https://github.com/cande342/finance-app.git)
 cd finance-app
 npm install
 ```
