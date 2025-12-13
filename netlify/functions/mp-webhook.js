@@ -23,8 +23,15 @@ exports.handler = async (event) => {
       const date = new Date(payInfo.date_approved || payInfo.date_created);
       const limitDate = new Date("2025-12-01T00:00:00Z");
       
-      const allowedTypes = ['regular_payment', 'pos_payment', 'transfer', 'account_money'];
-      const isAllowedType = allowedTypes.includes(payInfo.operation_type);
+    const allowedTypes = [
+      'regular_payment', 
+      'pos_payment', 
+      'transfer',       // <--- AGREGAR ESTO
+      'p2p_transfer',   // <--- AGREGAR ESTO
+      'account_money'
+    ];
+    const isAllowedType = allowedTypes.includes(payInfo.operation_type);
+
 
       // ==========================================
       //    LÓGICA DE FILTRO POR NOMBRE COMPLETO
