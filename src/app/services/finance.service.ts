@@ -19,6 +19,7 @@ import { combineLatest, map, Observable, of, switchMap } from 'rxjs';
 import { Transaction } from '../interfaces/Transaction';
 import { Installment } from '../interfaces/Installment';
 import { InvestmentCard } from '../interfaces/Investment';
+import { HttpClient } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root'
@@ -27,7 +28,8 @@ export class FinanceService {
 
   private firestore = inject(Firestore);
   private auth = inject(Auth);
-
+  private http = inject(HttpClient);
+  
   // Helper privado para manejar la espera del usuario
   private getUserData<T>(collectionName: string, orderField?: string): Observable<T[]> {
     return authState(this.auth).pipe(
@@ -214,6 +216,11 @@ export class FinanceService {
         });
       })
     );
+  }
+
+  syncMercadoPago() {
+    const url = 'https://tu-app.netlify.app/.netlify/functions/mp-sync';
+    return this.http.get<{message: string}>(url);
   }
 
 }

@@ -13,6 +13,7 @@ import { IngresoComponent } from '../../components/finance-cards/ingreso/ingreso
 import { CuotasComponent } from '../../components/finance-cards/cuotas/cuotas.component';
 import { InversionesComponent } from '../../components/finance-cards/inversiones/inversiones.component';
 
+
 type ModalId = 'ingreso' | 'cuotas' | 'inversiones' | null;
 
 @Component({
@@ -34,8 +35,9 @@ type ModalId = 'ingreso' | 'cuotas' | 'inversiones' | null;
 export class DashboardComponent {
   private financeService = inject(FinanceService);
 
-  // ✅ LÓGICA DE MODALES OPTIMIZADA
+
   activeModal: ModalId = null;
+  isSyncing = false;
 
   // Observables
   transactions$: Observable<Transaction[]>;
@@ -71,6 +73,23 @@ export class DashboardComponent {
       this.totalExpense = data
         .filter(t => t.type === 'gasto')
         .reduce((acc, curr) => acc + curr.amount, 0);
+    });
+  }
+
+  // --- LÓGICA DE SINCRONIZACIÓN ---
+  onSyncMP() {
+    this.isSyncing = true; //
+    
+    this.financeService.syncMercadoPago().subscribe({
+      next: (res) => {
+        alert(res.message); // Muestra cuántos movimientos nuevos se cargaron
+        this.isSyncing = false; //
+      },
+      error: (err) => {
+        console.error('Error en sync:', err);
+        alert('Hubo un error al conectar con Mercado Pago');
+        this.isSyncing = false; //
+      }
     });
   }
 
