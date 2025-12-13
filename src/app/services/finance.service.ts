@@ -29,7 +29,7 @@ export class FinanceService {
   private firestore = inject(Firestore);
   private auth = inject(Auth);
   private http = inject(HttpClient);
-  
+
   // Helper privado para manejar la espera del usuario
   private getUserData<T>(collectionName: string, orderField?: string): Observable<T[]> {
     return authState(this.auth).pipe(
@@ -219,7 +219,7 @@ export class FinanceService {
   }
 
   syncMercadoPago() {
-    const url = 'https://tu-app.netlify.app/.netlify/functions/mp-sync';
+    const url = 'https://sensational-semolina-f4d794.netlify.app/.netlify/functions/mp-sync';
     return this.http.get<{message: string}>(url);
   }
 
