@@ -218,6 +218,39 @@ export class FinanceService {
     );
   }
 
+  async deleteTransaction(id: string) {
+  const uid = this.auth.currentUser?.uid;
+  if (!uid) return;
+
+  // Referencia al documento específico dentro de la subcolección del usuario
+  const docRef = doc(this.firestore, `users/${uid}/transactions/${id}`);
+  
+  try {
+    await deleteDoc(docRef);
+    console.log('Mundo dice: Registro eliminado de los libros.');
+  } catch (error) {
+    console.error('Error al eliminar:', error);
+    alert('No se pudo eliminar el registro.');
+  }
+}
+
+async convertToInstallment(transactionId: string, installmentData: any) {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) return;
+
+    try {
+      // 1. Crear la cuota
+      await this.addInstallment(installmentData);
+      
+      // 2. Borrar el gasto original de MP
+      await this.deleteTransaction(transactionId);
+      
+      console.log("Mundo dice: Reestructuración de deuda completada.");
+    } catch (error) {
+      console.error("Error en la conversión:", error);
+    }
+  }
+
   syncMercadoPago() {
     const url = 'https://sensational-semolina-f4d794.netlify.app/.netlify/functions/mp-sync';
     return this.http.get<{message: string}>(url);

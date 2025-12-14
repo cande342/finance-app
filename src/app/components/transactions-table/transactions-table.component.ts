@@ -36,6 +36,11 @@ export class TransactionsTableComponent implements OnInit {
   sortBy: 'date' | 'amount' | 'category' = 'date';
   sortOrder: 'asc' | 'desc' = 'desc';
 
+  //Convertir a cuotas
+  isConvertModalOpen = false;
+  tempTransaction: Transaction | null = null;
+  numCuotas = 12;
+
   ngOnInit() {
     this.transactions$ = this.financeService.getAllMovements();
     
@@ -111,6 +116,32 @@ export class TransactionsTableComponent implements OnInit {
       return this.sortOrder === 'asc' ? comparison : -comparison;
     });
   }
+
+  /**   
+   * Abre el modal para convertir a cuotas
+   */
+  openConvertModal(t: Transaction) {
+    this.tempTransaction = t;
+    this.isConvertModalOpen = true;
+  }
+
+  async confirmConversion() {
+    if (!this.tempTransaction) return;
+
+    const installmentData = {
+      item: this.tempTransaction.description,
+      totalCuotas: this.numCuotas,
+      paidCuotas: 0,
+      totalAmount: this.tempTransaction.amount,
+      amountPerCuota: this.tempTransaction.amount / this.numCuotas,
+      createdAt: new Date()
+    };
+
+    await this.financeService.convertToInstallment(this.tempTransaction.id!, installmentData);
+    this.isConvertModalOpen = false;
+    this.tempTransaction = null;
+  }
+
 
   /**
    * Actualiza la vista paginada
@@ -188,6 +219,21 @@ export class TransactionsTableComponent implements OnInit {
     }
     
     return pages;
+  }
+
+  /**
+   * Elimina una transacción después de confirmar
+   */
+  async onDeleteTransaction(id?: string) {
+    if (!id) return;
+
+    const confirmacion = confirm('¿Mundo Corporativo aprueba eliminar este registro de forma permanente?');
+    
+    if (confirmacion) {
+      await this.financeService.deleteTransaction(id);
+      // No hace falta hacer nada más, el subscribe de ngOnInit 
+      // detectará el cambio en Firebase y refrescará la lista automáticamente.
+    }
   }
 
   /**
