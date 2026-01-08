@@ -135,32 +135,37 @@ export class AnalyticsComponent implements OnInit {
 
     // 2. Procesar Transacciones
     transactions.forEach(t => {
-      // Normalizar fecha (Firebase Timestamp vs Date vs String)
       let date: Date;
       if ((t.date as any)?.toDate) {
-        date = (t.date as any).toDate(); // Es Timestamp de Firebase
+        date = (t.date as any).toDate();
       } else {
-        date = new Date(t.date); // Es string o Date normal
+        date = new Date(t.date);
       }
 
-      if (isNaN(date.getTime())) return; // Fecha inválida, saltar
+      if (isNaN(date.getTime())) return;
 
       const amount = Number(t.amount) || 0;
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; // YYYY-MM
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
-      // Inicializar mes
-      if (!monthlyHistory[monthKey]) monthlyHistory[monthKey] = { income: 0, expense: 0 };
+      if (!monthlyHistory[monthKey]) {
+        monthlyHistory[monthKey] = { income: 0, expense: 0 };
+      }
 
-      if (t.type === 'ingreso') {
+      if (amount > 0) {
+        // INGRESO
         this.totalIncome += amount;
         monthlyHistory[monthKey].income += amount;
-      } else if (t.type === 'gasto') {
-        this.totalExpense += amount;
-        monthlyHistory[monthKey].expense += amount;
+      }
 
-        // Categorías (Solo gastos)
+      if (amount < 0) {
+        // GASTO
+        const expense = Math.abs(amount);
+
+        this.totalExpense += expense;
+        monthlyHistory[monthKey].expense += expense;
+
         const cat = t.category || 'Otros';
-        categoriesMap[cat] = (categoriesMap[cat] || 0) + amount;
+        categoriesMap[cat] = (categoriesMap[cat] || 0) + expense;
       }
     });
 

@@ -122,7 +122,7 @@ export class FinanceService {
       // No existe: creamos la transacción con metadata que la liga a la cuota
       await addDoc(transactionsRef, {
         type: 'gasto',
-        amount: amountPerCuota,
+        amount: -Math.abs(amountPerCuota),
         description: `Pago cuota ${cuotaNumber}/${total} - ${item}`,
         category: 'cuota',
         date: new Date(),
