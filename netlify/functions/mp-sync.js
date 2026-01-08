@@ -103,7 +103,7 @@ exports.handler = async (event) => {
       if (txSnap.exists) continue;
 
       // --- SOLO GASTOS ---
-      const isExpense = mov.payer?.id === MY_MP_USER_ID;
+      const isExpense = mov.collector_id !== MY_MP_USER_ID;
 
       const desc = (mov.description || '').toLowerCase();
 
