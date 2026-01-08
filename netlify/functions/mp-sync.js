@@ -11,6 +11,9 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
+// TU USUARIO DE MERCADO PAGO (ENV VAR)
+const MY_MP_USER_ID = Number(process.env.MP_USER_ID);
+
 exports.handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -94,12 +97,30 @@ exports.handler = async (event) => {
         maxDateProcessed = mov.date_created;
       }
 
-      // ID determinístico = NO DUPLICADOS
+      // ID determinístico (no duplicados)
       const txRef = transactionsRef.doc(String(mov.id));
       const txSnap = await txRef.get();
       if (txSnap.exists) continue;
 
-      const amount = mov.transaction_amount;
+      // --- CLASIFICACIÓN CORRECTA ---
+      const isIncome = mov.collector_id === MY_MP_USER_ID;
+      const isExpense = mov.payer?.id === MY_MP_USER_ID;
+
+      let type;
+      let amount;
+
+      if (isIncome && !isExpense) {
+        type = 'ingreso';
+        amount = Math.abs(mov.transaction_amount);
+      } else if (isExpense && !isIncome) {
+        type = 'gasto';
+        amount = -Math.abs(mov.transaction_amount);
+      } else {
+        // transferencias internas, ajustes, etc
+        type = 'transferencia';
+        amount = mov.transaction_amount;
+      }
+
       const description =
         mov.description ||
         mov.reason ||
@@ -108,9 +129,9 @@ exports.handler = async (event) => {
       batch.set(txRef, {
         mp_id: String(mov.id),
         amount: amount,
+        type: type,
         description: description,
         category: 'Mercado Pago',
-        type: 'gasto', // ajuste manual si luego detectás ingresos
         date: new Date(mov.date_created),
         source: 'mercadopago',
         createdAt: new Date()
@@ -139,10 +160,7 @@ exports.handler = async (event) => {
     };
 
   } catch (error) {
-    console.error(
-      '[MP ERROR]',
-      error.response?.data || error.message
-    );
+    console.error('[MP ERROR]', error.response?.data || error.message);
 
     return {
       statusCode: error.response?.status || 500,
