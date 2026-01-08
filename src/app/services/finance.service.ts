@@ -251,9 +251,26 @@ async convertToInstallment(transactionId: string, installmentData: any) {
     }
   }
 
+// =========================================
+  //        NUEVA LÓGICA DE SINCRONIZACIÓN
+  // =========================================
+
+  /**
+   * Sincronización Inteligente:
+   * Envía el UID al backend. El backend buscará la fecha 'last_sync' de este usuario
+   * y solo traerá movimientos posteriores a esa fecha.
+   */
   syncMercadoPago() {
+    const user = this.auth.currentUser;
+    
+    if (!user) {
+      return of({ message: 'No hay usuario logueado', count: 0 });
+    }
+
     const url = 'https://sensational-semolina-f4d794.netlify.app/.netlify/functions/mp-sync';
-    return this.http.get<{message: string}>(url);
+    return this.http.post<{ message: string, count: number }>(url, { 
+      userId: user.uid 
+    });
   }
 
 }

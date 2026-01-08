@@ -77,21 +77,33 @@ export class DashboardComponent {
   }
 
   // --- LÓGICA DE SINCRONIZACIÓN ---
-  onSyncMP() {
-    this.isSyncing = true; //
-    
-    this.financeService.syncMercadoPago().subscribe({
-      next: (res) => {
-        alert(res.message); // Muestra cuántos movimientos nuevos se cargaron
-        this.isSyncing = false; //
-      },
-      error: (err) => {
-        console.error('Error en sync:', err);
-        alert('Hubo un error al conectar con Mercado Pago');
-        this.isSyncing = false; //
-      }
-    });
-  }
+    onSyncMP() {
+      this.isSyncing = true;
+      
+      this.financeService.syncMercadoPago().subscribe({
+        // 1. Aquí definimos explícitamente el tipo de 'res'
+        next: (res: { message: string, count: number }) => {
+          
+          // Opcional: Solo mostrar alerta si hubo cambios reales
+          if (res.count > 0) {
+            alert(res.message); 
+          } else {
+            console.log(res.message); // Si no hubo nada, solo log
+          }
+          
+          this.isSyncing = false;
+        },
+        
+        // 2. Aquí definimos 'err' como 'any' para que TS no se queje
+        error: (err: any) => {
+          console.error('Error en sync:', err);
+          alert('Hubo un error al conectar con Mercado Pago');
+          this.isSyncing = false;
+        }
+      });
+    }
+
+  
 
   // --- GESTIÓN DE MODALES ---
 

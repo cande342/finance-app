@@ -1,6 +1,7 @@
 const admin = require('firebase-admin');
-const { MercadoPagoConfig, Payment } = require('mercadopago');
+const axios = require('axios');
 
+// Inicialización estándar
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT))
@@ -9,69 +10,147 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 exports.handler = async (event) => {
-  // Solo permitimos GET desde tu app
-  if (event.httpMethod !== 'GET') return { statusCode: 405 };
+  // ============================================================
+  // 1. CABECERAS CORS (La cura para tu error rojo)
+  // ============================================================
+  const headers = {
+    'Access-Control-Allow-Origin': '*', // Permite que Angular (localhost) llame aquí
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+  };
+
+  // ============================================================
+  // 2. MANEJO DE PREFLIGHT (La pregunta invisible del navegador)
+  // ============================================================
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers, // <--- IMPORTANTÍSIMO DEVOLVERLAS AQUÍ
+      body: ''
+    };
+  }
+
+  // Si no es POST, chao
+  if (event.httpMethod !== 'POST') {
+    return { 
+      statusCode: 405, 
+      headers, 
+      body: 'Method Not Allowed' 
+    };
+  }
 
   try {
-    const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN });
-    const payment = new Payment(client);
+    const { userId } = JSON.parse(event.body);
+    if (!userId) throw new Error('Usuario no identificado');
 
-    // 1. Buscamos movimientos de los últimos 7 días
-    const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+    // --- LÓGICA DE CURSOR (Evita repetidos) ---
+    const userRef = db.collection('users').doc(userId);
+    const userSnap = await userRef.get();
+    const userData = userSnap.data() || {};
     
-    const filters = {
-      begin_date: sevenDaysAgo.toISOString(),
-      end_date: now.toISOString(),
-      sort: 'date_approved',
-      criteria: 'desc',
-      status: 'approved' // Solo los que ya se cobraron
-    };
+    // Fecha base 2026 si es la primera vez
+    const BASE_DATE_2026 = '2026-01-01T00:00:00.000-03:00';
+    let lastSyncDate = userData.last_sync ? userData.last_sync : BASE_DATE_2026;
 
-    const searchResult = await payment.search({ options: filters });
-    const payments = searchResult.results || [];
+    console.log(`Sync user ${userId} from: ${lastSyncDate}`);
 
-    const myFullNames = (process.env.MY_FULL_NAMES || "").toUpperCase().split(',').map(n => n.trim());
-    const userId = process.env.MY_FIREBASE_UID;
+    // --- PETICIÓN A MERCADO PAGO ---
+    const mpResponse = await axios.get('https://api.mercadopago.com/v1/account/movements/search', {
+      headers: {
+        'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}`
+      },
+      params: {
+        sort: 'date_created',
+        criteria: 'asc',
+        range: 'date_created',
+        begin_date: lastSyncDate, 
+        limit: 50
+      }
+    });
+
+    const movements = mpResponse.data.results || [];
+    
+    // Si no hay nada nuevo
+    if (movements.length === 0) {
+      return {
+        statusCode: 200,
+        headers, // <--- NO OLVIDAR HEADERS
+        body: JSON.stringify({ message: 'Todo al día.', count: 0 })
+      };
+    }
+
+    // --- PROCESAR MOVIMIENTOS ---
+    const batch = db.batch();
     const transactionsRef = db.collection(`users/${userId}/transactions`);
     
-    let addedCount = 0;
+    let processedCount = 0;
+    let maxDateProcessed = lastSyncDate;
 
-    // 2. Procesamos cada pago encontrado
-    for (const pay of payments) {
-      const description = (pay.description || "").toUpperCase();
-      const isSelfTransfer = myFullNames.some(name => name && description.includes(name));
-      const amount = pay.transaction_amount;
+    for (const mov of movements) {
+      if (mov.status !== 'approved' && mov.status !== 'accredited') continue;
 
-      // Filtros: Solo gastos (egresos) y que NO sean a mi nombre
-      // En el search de MP, los pagos que vos hacés tienen montos positivos pero son tipo 'payment' o 'transfer'
-      if (!isSelfTransfer && amount > 0) {
-        
-        // Verificamos si ya existe en la DB para no duplicar
-        const existing = await transactionsRef.where("mpId", "==", String(pay.id)).get();
-        
-        if (existing.empty) {
-          await transactionsRef.add({
-            amount: amount,
-            description: `MP: ${pay.description || 'Gasto'}`,
-            category: "Mercado Pago",
-            date: admin.firestore.Timestamp.fromDate(new Date(pay.date_approved)),
-            type: "gasto",
-            mpId: String(pay.id),
-            metadata: "manual-sync"
-          });
-          addedCount++;
-        }
+      // Doble chequeo de seguridad
+      const existingDocs = await transactionsRef.where('mp_id', '==', String(mov.id)).get();
+      if (!existingDocs.empty) {
+        if (mov.date_created > maxDateProcessed) maxDateProcessed = mov.date_created;
+        continue; 
       }
+
+      // Detectar Ingreso vs Gasto
+      let type = 'gasto';
+      let category = 'varios';
+      let amount = mov.amount;
+      const description = (mov.description || mov.detail || 'Movimiento MP').toUpperCase();
+
+      if (amount > 0) {
+        type = 'ingreso';
+        category = 'Ingreso MP';
+      } else {
+        type = 'gasto';
+        amount = Math.abs(amount);
+        category = 'Gasto MP';
+      }
+
+      const newDocRef = transactionsRef.doc();
+      batch.set(newDocRef, {
+        mp_id: String(mov.id),
+        description: description,
+        amount: amount,
+        type: type,
+        category: category,
+        date: new Date(mov.date_created),
+        source: 'mercadopago',
+        createdAt: new Date()
+      });
+
+      processedCount++;
+      if (mov.date_created > maxDateProcessed) {
+        maxDateProcessed = mov.date_created;
+      }
+    }
+
+    // Guardar nueva fecha de corte
+    if (processedCount > 0) {
+      const nextSyncDate = new Date(new Date(maxDateProcessed).getTime() + 1).toISOString();
+      batch.set(userRef, { last_sync: nextSyncDate }, { merge: true });
+      await batch.commit();
     }
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ message: `Sincronización terminada. ${addedCount} nuevos movimientos.` })
+      headers, 
+      body: JSON.stringify({ 
+        message: `Éxito. ${processedCount} nuevos.`, 
+        count: processedCount 
+      })
     };
 
   } catch (error) {
     console.error('Error Sync:', error);
-    return { statusCode: 500, body: 'Error en la sincronización' };
+    return { 
+      statusCode: 500, 
+      headers,
+      body: JSON.stringify({ error: error.message }) 
+    };
   }
 };
