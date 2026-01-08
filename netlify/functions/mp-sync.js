@@ -11,7 +11,7 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-// TU USUARIO DE MERCADO PAGO (ENV VAR)
+// TU USUARIO DE MERCADO PAGO
 const MY_MP_USER_ID = Number(process.env.MP_USER_ID);
 
 exports.handler = async (event) => {
@@ -50,7 +50,7 @@ exports.handler = async (event) => {
     const lastSyncDate = userData.last_sync || BASE_DATE;
     const now = new Date().toISOString();
 
-    console.log(`[MP SYNC] User: ${userId} | ${lastSyncDate} → ${now}`);
+    console.log(`[MP SYNC GASTOS] ${userId} | ${lastSyncDate} → ${now}`);
 
     // --- MERCADO PAGO ---
     const mpResponse = await axios.get(
@@ -77,7 +77,7 @@ exports.handler = async (event) => {
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ message: 'Sin movimientos nuevos', count: 0 })
+        body: JSON.stringify({ message: 'Sin gastos nuevos', count: 0 })
       };
     }
 
@@ -89,7 +89,7 @@ exports.handler = async (event) => {
     let maxDateProcessed = lastSyncDate;
 
     for (const mov of movements) {
-      // Solo pagos efectivos
+      // Solo aprobados
       if (!['approved', 'accredited'].includes(mov.status)) continue;
 
       // Cursor temporal
@@ -102,35 +102,28 @@ exports.handler = async (event) => {
       const txSnap = await txRef.get();
       if (txSnap.exists) continue;
 
-      // --- CLASIFICACIÓN CORRECTA ---
-      const isIncome = mov.collector_id === MY_MP_USER_ID;
+      // --- SOLO GASTOS ---
       const isExpense = mov.payer?.id === MY_MP_USER_ID;
 
-      let type;
-      let amount;
+      const desc = (mov.description || '').toLowerCase();
 
-      if (isIncome && !isExpense) {
-        type = 'ingreso';
-        amount = Math.abs(mov.transaction_amount);
-      } else if (isExpense && !isIncome) {
-        type = 'gasto';
-        amount = -Math.abs(mov.transaction_amount);
-      } else {
-        // transferencias internas, ajustes, etc
-        type = 'transferencia';
-        amount = mov.transaction_amount;
+      // Filtrar ingresos y transferencias entrantes
+      const isBankIn =
+        desc.includes('bank transfer') ||
+        desc.includes('transferencia') ||
+        desc.includes('varios');
+
+      if (!isExpense || isBankIn) {
+        continue;
       }
 
-      const description =
-        mov.description ||
-        mov.reason ||
-        'Movimiento Mercado Pago';
+      const amount = -Math.abs(mov.transaction_amount);
 
       batch.set(txRef, {
         mp_id: String(mov.id),
         amount: amount,
-        type: type,
-        description: description,
+        type: 'gasto',
+        description: mov.description || 'Gasto Mercado Pago',
         category: 'Mercado Pago',
         date: new Date(mov.date_created),
         source: 'mercadopago',
@@ -154,13 +147,13 @@ exports.handler = async (event) => {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        message: `Sincronizados ${processedCount} movimientos`,
+        message: `Sincronizados ${processedCount} gastos`,
         count: processedCount
       })
     };
 
   } catch (error) {
-    console.error('[MP ERROR]', error.response?.data || error.message);
+    console.error('[MP SYNC ERROR]', error.response?.data || error.message);
 
     return {
       statusCode: error.response?.status || 500,
