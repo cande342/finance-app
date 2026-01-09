@@ -63,11 +63,23 @@ export class FinanceService {
   async addTransaction(transaction: Omit<Transaction, 'id'>) {
     const user = this.auth.currentUser;
     if (!user) return;
+
+    let amount = Number(transaction.amount) || 0;
+    if (transaction.type === 'gasto') {
+      amount = -Math.abs(amount);
+    }
+
+    if (transaction.type === 'ingreso') {
+      amount = Math.abs(amount);
+    }
+
     const ref = collection(this.firestore, `users/${user.uid}/transactions`);
-    await addDoc(ref, transaction);
+
+    await addDoc(ref, {
+      ...transaction,
+      amount
+    });
   }
-
-
 
   // =========================================
   //                CUOTAS
